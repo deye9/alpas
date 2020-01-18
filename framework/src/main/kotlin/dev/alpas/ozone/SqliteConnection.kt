@@ -1,21 +1,23 @@
 package dev.alpas.ozone
 
+import com.zaxxer.hikari.HikariDataSource
 import dev.alpas.Environment
 import me.liuwj.ktorm.database.Database
+import me.liuwj.ktorm.support.sqlite.SQLiteDialect
 import java.io.File
 import java.nio.file.Paths
 
 open class SqliteConnection(private val env: Environment, config: ConnectionConfig? = null) : DatabaseConnection {
-    open val dialect = config?.sqlDialect
+    open val dialect = config?.sqlDialect ?: SQLiteDialect()
 
     private val db by lazy {
-        val driver = "org.sqlite.JDBC"
-        if (config?.database == ":memory:") {
-            throw IllegalArgumentException("SQLite in-memory database is not supported.")
+        val database = if (config?.database == ":memory:") {
+            ":memory:"
         } else {
-            val database = (config?.database ?: defaultDatabase()).also(::createDatabaseFile)
-            Database.connect("jdbc:sqlite:$database", driver, dialect = dialect)
+            (config?.database ?: defaultDatabase()).also(::createDatabaseFile)
         }
+        val ds = HikariDataSource().also { it.jdbcUrl = "jdbc:sqlite:$database" }
+        Database.connect(ds, dialect)
     }
 
     private fun defaultDatabase(): String {

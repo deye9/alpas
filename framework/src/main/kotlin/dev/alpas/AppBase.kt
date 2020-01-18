@@ -2,6 +2,7 @@ package dev.alpas
 
 import dev.alpas.console.ConsoleKernel
 import dev.alpas.http.HttpKernel
+import dev.alpas.routing.Router
 import mu.KLogger
 import mu.KotlinLogging
 import java.io.File
@@ -22,7 +23,7 @@ abstract class AppBase(val args: Array<String>, override var entryClass: Class<*
     override val env by lazy { make<Environment>() }
     override val configs by lazy { makeMany<Config>() }
 
-    protected val kernel by lazy { if (env.inConsoleMode) make { ConsoleKernel() } else make { HttpKernel() } }
+    override val kernel by lazy { if (env.inConsoleMode) makeElse { ConsoleKernel() } else makeElse { HttpKernel() } }
 
     // The following methods sort of describe the lifecycle of an Alpas application
     // 1. Initialization: First the command line args and the caller classes are registered
@@ -45,6 +46,11 @@ abstract class AppBase(val args: Array<String>, override var entryClass: Class<*
 
     // Buffer the debug log while the app is getting ready and while waiting for the real logger to be available
     override fun bufferDebugLog(log: String) {}
+
+    fun routes(block: Router.() -> Unit): Application {
+        make<Router>().block()
+        return this
+    }
 }
 
 // Retrieves and returns a config object of type T from the container
@@ -56,4 +62,4 @@ fun Container.appConfig() = config { AppConfig(it.make()) }
 
 // Returns a config object of type T if already exists in the container otherwise it calls the default callback
 // to get an instance of the type T, registers it to the container and then returns the config object.
-inline fun <reified T : Config> Container.config(default: (container: Container) -> T): T = make { bind(default(this)) }
+inline fun <reified T : Config> Container.config(default: (container: Container) -> T): T = makeElse { bind(default(this)) }

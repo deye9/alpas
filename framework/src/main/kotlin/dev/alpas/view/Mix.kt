@@ -11,7 +11,7 @@ internal class Mix(private val app: Application) {
     operator fun invoke(path: String, manifestDirectory: String = ""): String {
         // In dev mode the mix manifest file could change when the developer is actively making changes to the
         // static assets such as .css, .vue, .js files etc. The manifest file shouldn't change in the prod
-        // mode. To accommodate this, we'll make mix a singleton for prod and non-singleton in dev mode.
+        // mode. To accommodate this, we'll make mix a singleton for prod and non-singleton in de mode.
         if (app.env.isDev || !::manifestMap.isInitialized) {
             val config = app.config<ViewConfig>()
             val mixManifestDirectory = config.mixManifestDirectory.mustStartWith("/")

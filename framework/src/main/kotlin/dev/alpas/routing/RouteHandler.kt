@@ -3,7 +3,7 @@ package dev.alpas.routing
 import dev.alpas.PackageClassLoader
 import dev.alpas.Pipeline
 import dev.alpas.http.HttpCall
-import dev.alpas.ozone.orAbort
+import dev.alpas.orAbort
 import kotlin.reflect.KClass
 import kotlin.reflect.full.createInstance
 
@@ -63,7 +63,7 @@ class DynamicControllerHandler(private val controllerName: String, val method: S
     override fun toString() = "$controllerName#$method"
 }
 
-class ClosureHandler(private val closure: (HttpCall) -> Unit) : RouteHandler() {
+class ClosureHandler(private val closure: HttpCall.() -> Unit) : RouteHandler() {
     override fun handle(call: HttpCall) {
         closure(call)
     }

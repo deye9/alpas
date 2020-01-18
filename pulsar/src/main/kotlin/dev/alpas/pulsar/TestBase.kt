@@ -1,10 +1,12 @@
 package dev.alpas.pulsar
 
+import com.github.javafaker.Faker
 import dev.alpas.*
 import dev.alpas.auth.AuthConfig
 import dev.alpas.auth.Authenticatable
 import dev.alpas.http.HttpCall
 import dev.alpas.http.middleware.VerifyCsrfToken
+import dev.alpas.routing.Router
 import io.restassured.RestAssured
 import io.restassured.config.SessionConfig
 import io.restassured.http.ContentType
@@ -15,7 +17,10 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import uy.klutter.core.uri.buildUri
 import kotlin.reflect.KClass
 
-open class AlpasTestApp(entryClass: Class<*>) : AlpasApp(emptyArray(), entryClass) {
+lateinit var app: Alpas
+    private set
+
+open class AlpasTest(entryClass: Class<*>) : Alpas(emptyArray(), entryClass) {
     lateinit var lastCall: HttpCall
     private val routeMiddlewareToSkip = mutableListOf<String>()
 
@@ -47,13 +52,16 @@ open class AlpasTestApp(entryClass: Class<*>) : AlpasApp(emptyArray(), entryClas
 
 abstract class TestBase(entryClass: Class<*>) {
     open val configureSession = true
-    protected val app: AlpasTestApp by lazy {
+    protected val app: AlpasTest by lazy {
         System.setProperty(RUN_MODE, "test")
-        AlpasTestApp(entryClass)
+        AlpasTest(entryClass).also {
+            dev.alpas.pulsar.app = it
+        }
     }
 
     protected fun runApp() {
         app.apply {
+            app.make<Router>().loadRoutes()
             ignite()
             RestAssured.port = env("APP_PORT", 8090)
             if (configureSession) {
@@ -108,6 +116,15 @@ abstract class TestBase(entryClass: Class<*>) {
         }
     }
 
+    protected fun assertRedirectToRoute(
+        name: String,
+        params: Map<String, Any>? = null,
+        absolute: Boolean = true,
+        status: Int? = null
+    ) {
+        assertRedirect(routeNamed(name, params, absolute), status)
+    }
+
     protected fun assertRedirectExternal(location: String, status: Int? = null) {
         val redirect = call().redirector.redirect
         val uri = buildUri(redirect.location).clearQuery().build().asString()
@@ -145,9 +162,11 @@ abstract class TestBase(entryClass: Class<*>) {
         assertEquals(viewName, call().view.name)
     }
 
-    protected fun assertViewHas(expectedArgs: Map<String, Any?>) {
+    protected fun assertViewHas(expectedArgs: Map<String, Any?>, argsSizeShouldMatch: Boolean = false) {
         val actualArgs = viewArgs()
-        assertEquals(expectedArgs.size, actualArgs?.size)
+        if (argsSizeShouldMatch) {
+            assertEquals(expectedArgs.size, actualArgs?.size)
+        }
         expectedArgs.forEach {
             assertEquals(it.value, actualArgs?.get(it.key))
         }
@@ -219,9 +238,16 @@ abstract class TestBase(entryClass: Class<*>) {
         becomeUser(user, true)
     }
 
+    fun <T> asUser(user: Authenticatable, block: () -> T): T {
+        becomeUser(user, true)
+        return block()
+    }
+
     fun routeNamed(name: String, params: Map<String, Any>? = null, absolute: Boolean = true): String {
         return call().routeNamed(name, params, absolute)
     }
+
+    abstract fun Router.loadRoutes()
 }
 
 fun RequestSpecification.wantsJson() = apply {
@@ -230,4 +256,27 @@ fun RequestSpecification.wantsJson() = apply {
 
 fun RequestSpecification.bearerToken(token: String) = apply {
     header("Authorization", "Bearer $token")
+}
+
+fun RequestSpecification.trapRedirects() = apply {
+    redirects().follow(false)
+}
+
+
+val faker by lazy { Faker() }
+
+fun <E, EF : EntityFactory<E>> from(factory: () -> EF, attrs: Map<String, Any?> = emptyMap()): E {
+    return factory().make(attrs)
+}
+
+fun <E, EF : EntityFactory<E>> manyFrom(
+    factory: () -> EF,
+    count: Int = 1,
+    attrs: Map<String, Any?> = emptyMap()
+): List<E> {
+    return factory().makeMany(count, attrs)
+}
+
+fun <EF : EntityFactory<*>> factory(factory: () -> EF): EF {
+    return factory()
 }

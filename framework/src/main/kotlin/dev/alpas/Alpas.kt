@@ -10,10 +10,21 @@ import dev.alpas.notifications.NotificationServiceProvider
 import kotlin.reflect.KClass
 import kotlin.reflect.full.createInstance
 
-open class AlpasApp(args: Array<String>, entryClass: Class<*>) : Container by DefaultContainer(),
-    AppBase(args, entryClass) {
+open class Alpas(args: Array<String>, entryClass: Class<*>, block: Alpas.() -> Unit = {}) :
+    Container by DefaultContainer(), AppBase(args, entryClass) {
+    constructor(args: Array<String>, block: Alpas.() -> Unit = {}) : this(
+        args,
+        StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).callerClass,
+        block
+    )
+
     constructor(args: Array<String>) : this(
         args,
+        StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).callerClass
+    )
+
+    constructor() : this(
+        emptyArray(),
         StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).callerClass
     )
 
@@ -26,6 +37,7 @@ open class AlpasApp(args: Array<String>, entryClass: Class<*>) : Container by De
     init {
         registerCoreServices(args)
         loadKernel()
+        block()
     }
 
     override fun bufferDebugLog(log: String) {
@@ -132,7 +144,7 @@ open class AlpasApp(args: Array<String>, entryClass: Class<*>) : Container by De
 
     private fun loadUserlandCoreClasses(loader: PackageClassLoader) {
         loader.load {
-            listOf(Config::class, Kernel::class).forEach { interfaze ->
+            listOf(Config::class).forEach { interfaze ->
                 classesImplementing(interfaze) {
                     bufferDebugLog("Loading $it from $packageName that implement $interfaze")
                     if (it.superclass == null) {
@@ -165,4 +177,3 @@ open class AlpasApp(args: Array<String>, entryClass: Class<*>) : Container by De
         INFLIGHT
     }
 }
-

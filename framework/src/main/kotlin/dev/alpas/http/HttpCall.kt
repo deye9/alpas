@@ -8,7 +8,6 @@ import dev.alpas.auth.UserProvider
 import dev.alpas.exceptions.ExceptionHandler
 import dev.alpas.exceptions.HttpException
 import dev.alpas.exceptions.ValidationException
-import dev.alpas.ozone.orAbort
 import dev.alpas.routing.RouteResult
 import dev.alpas.routing.UrlGenerator
 import dev.alpas.validation.ErrorBag
@@ -42,7 +41,7 @@ class HttpCall internal constructor(
     var isDropped = false
         private set
 
-    private val exceptionHandler by lazy { make { ExceptionHandler() } }
+    private val exceptionHandler by lazy { makeElse { ExceptionHandler() } }
     val authChannel: AuthChannel by lazy { config<AuthConfig>().channel(this, route.target().authChannel) }
     internal val userProvider: UserProvider? by lazy { authChannel.userProvider }
     val isAuthenticated by lazy { authChannel.isLoggedIn() }
@@ -113,12 +112,16 @@ class HttpCall internal constructor(
         checkValidationErrors()
     }
 
-    fun <T : ValidationGuard> validateUsing(validator: KClass<out T>): T {
+    fun <T : ValidationGuard> validateUsing(validator: KClass<out T>, afterSuccessBlock: T.() -> Unit = {}): T {
         return validator.createInstance().also {
             it.call = this
             it.validate(errorBag)
             checkValidationErrors { errorBag ->
                 it.handleError(errorBag)
+            }
+            if (errorBag.isEmpty()) {
+                it.afterSuccessfulValidation()
+                it.afterSuccessBlock()
             }
         }
     }
@@ -179,4 +182,8 @@ class HttpCall internal constructor(
     }
 
     internal fun sessionIsValid() = env.supportsSession && !servletResponse.isCommitted && session.isValid()
+
+    operator fun <T> invoke(block: HttpCall.() -> T): T {
+        return this.block()
+    }
 }

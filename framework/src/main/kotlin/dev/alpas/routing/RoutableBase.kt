@@ -14,29 +14,29 @@ abstract class RoutableBase(
 
     // closures
 
-    fun get(closure: (HttpCall) -> Unit) = get("", middleware, closure)
-    fun get(path: String, closure: (HttpCall) -> Unit) = get(path, middleware, closure)
-    fun get(path: String, middleware: Set<KClass<out Middleware<HttpCall>>>, closure: (HttpCall) -> Unit) =
+    fun get(closure: HttpCall.() -> Unit) = get("", middleware, closure)
+    fun get(path: String, closure: HttpCall.() -> Unit) = get(path, middleware, closure)
+    fun get(path: String, middleware: Set<KClass<out Middleware<HttpCall>>>, closure: HttpCall.() -> Unit) =
         add(Method.GET, path, ClosureHandler(closure), middleware)
 
-    fun post(closure: (HttpCall) -> Unit) = post("", middleware, closure)
-    fun post(path: String, closure: (HttpCall) -> Unit) = post(path, middleware, closure)
-    fun post(path: String, middleware: Set<KClass<out Middleware<HttpCall>>>, closure: (HttpCall) -> Unit) =
+    fun post(closure: HttpCall.() -> Unit) = post("", middleware, closure)
+    fun post(path: String, closure: HttpCall.() -> Unit) = post(path, middleware, closure)
+    fun post(path: String, middleware: Set<KClass<out Middleware<HttpCall>>>, closure: HttpCall.() -> Unit) =
         add(Method.POST, path, ClosureHandler(closure), middleware)
 
-    fun delete(closure: (HttpCall) -> Unit) = delete("", middleware, closure)
-    fun delete(path: String, closure: (HttpCall) -> Unit) = delete(path, middleware, closure)
-    fun delete(path: String, middleware: Set<KClass<out Middleware<HttpCall>>>, closure: (HttpCall) -> Unit) =
+    fun delete(closure: HttpCall.() -> Unit) = delete("", middleware, closure)
+    fun delete(path: String, closure: HttpCall.() -> Unit) = delete(path, middleware, closure)
+    fun delete(path: String, middleware: Set<KClass<out Middleware<HttpCall>>>, closure: HttpCall.() -> Unit) =
         add(Method.DELETE, path, ClosureHandler(closure), middleware)
 
-    fun patch(closure: (HttpCall) -> Unit) = patch("", middleware, closure)
-    fun patch(path: String, closure: (HttpCall) -> Unit) = patch(path, middleware, closure)
-    fun patch(path: String, middleware: Set<KClass<out Middleware<HttpCall>>>, closure: (HttpCall) -> Unit) =
+    fun patch(closure: HttpCall.() -> Unit) = patch("", middleware, closure)
+    fun patch(path: String, closure: HttpCall.() -> Unit) = patch(path, middleware, closure)
+    fun patch(path: String, middleware: Set<KClass<out Middleware<HttpCall>>>, closure: HttpCall.() -> Unit) =
         add(Method.PATCH, path, ClosureHandler(closure), middleware)
 
     // dynamic controllers
 
-    internal fun get(controller: String, method: String = "index") = get("", middleware, controller, method)
+//    internal fun get(controller: String, method: String = "index") = get("", middleware, controller, method)
     internal fun get(path: String, controller: String, method: String = "index") =
         get(path, middleware, controller, method)
 
@@ -47,7 +47,7 @@ abstract class RoutableBase(
         method: String = "index"
     ) = add(Method.GET, path, DynamicControllerHandler(controller, method), middleware)
 
-    internal fun post(controller: String, method: String = "store") = post("", middleware, controller, method)
+//    internal fun post(controller: String, method: String = "store") = post("", middleware, controller, method)
     internal fun post(path: String, controller: String, method: String = "store") =
         post(path, middleware, controller, method)
 
@@ -58,7 +58,7 @@ abstract class RoutableBase(
         method: String = "store"
     ) = add(Method.POST, path, DynamicControllerHandler(controller, method), middleware)
 
-    internal fun delete(controller: String, method: String = "delete") = delete("", middleware, controller, method)
+//    internal fun delete(controller: String, method: String = "delete") = delete("", middleware, controller, method)
     internal fun delete(path: String, controller: String, method: String = "delete") =
         delete(path, middleware, controller, method)
 
@@ -69,7 +69,7 @@ abstract class RoutableBase(
         method: String = "delete"
     ) = add(Method.DELETE, path, DynamicControllerHandler(controller, method), middleware)
 
-    internal fun patch(controller: String, method: String = "update") = patch("", middleware, controller, method)
+//    internal fun patch(controller: String, method: String = "update") = patch("", middleware, controller, method)
     internal fun patch(path: String, controller: String, method: String = "update") =
         patch(path, middleware, controller, method)
 
